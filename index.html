@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#fbf7f2">
+<title>결혼식 사진첩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{--bg:#fbf7f2;--ink:#3d3a43;--sub:#8a8590;--line:#eadfd6;--pink:#ee8ca1}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 "Gowun Dodum",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit}
+button:focus-visible{outline:3px solid #7fb4d6;outline-offset:2px}
+header{padding:32px 20px 18px;text-align:center}
+h1{font:400 30px/1.3 "Jua",sans-serif;margin:0 0 6px}
+header p{margin:0;color:var(--sub);font-size:14px}
+
+.map{position:relative;width:calc(100% - 28px);max-width:1060px;margin:6px auto 0;border-radius:20px;overflow:hidden;box-shadow:0 6px 24px rgba(80,60,60,.12);line-height:0;background:#fff}
+.map img{width:100%;height:auto;display:block}
+.pin{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;padding:0;border-radius:50%;border:2px solid #fff;background:var(--pink);color:#fff;font-size:12px;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.pin::before{content:"";position:absolute;inset:-9px}
+.pin::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--pink);opacity:0;animation:ring 3s ease-out infinite;pointer-events:none}
+@keyframes ring{0%{transform:scale(1);opacity:.5}70%,100%{transform:scale(1.9);opacity:0}}
+@media(prefers-reduced-motion:reduce){.pin::after{animation:none}}
+
+#chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:22px 16px 14px}
+.chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 15px 6px 7px;font-size:15px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.chip:hover{border-color:var(--pink)}
+.chip b{width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:#fde6eb;color:#d9627d;font-size:12px}
+.mail{display:flex;justify-content:center;padding:6px 16px 48px}
+.mail[hidden]{display:none}
+.env{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 22px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.env:hover{border-color:var(--pink)}
+
+#sheet{position:fixed;inset:0;z-index:10;display:none;background:rgba(40,32,40,.45)}
+#sheet.on{display:block}
+.panel{position:absolute;left:0;right:0;bottom:0;max-height:86vh;max-height:86dvh;;max-width:900px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg);border-radius:22px 22px 0 0;animation:up .25s ease-out}
+.panel::before{content:"";align-self:center;width:44px;height:5px;border-radius:3px;background:#d9cfc6;margin-top:10px;flex:none}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.ph{display:flex;align-items:center;gap:10px;padding:10px 18px;flex:none}
+.ph h2{font:400 20px "Jua",sans-serif;margin:0;flex:1}
+.btn{border:0;border-radius:999px;padding:7px 15px;font-size:14px;background:var(--pink);color:#fff;cursor:pointer}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:#fff;color:var(--sub);border:1px solid var(--line);width:34px;height:34px;padding:0;font-size:14px}
+
+.grid{flex:1;min-height:0;overflow-y:scroll;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;padding:6px 18px calc(24px + env(safe-area-inset-bottom));scrollbar-width:thin;scrollbar-color:#d9cfc6 transparent}
+.grid::-webkit-scrollbar{width:8px}
+.grid::-webkit-scrollbar-thumb{background:#d9cfc6;border-radius:4px}
+.cell{--n:3;--w:calc((100% - (var(--n) - 1) * 6px) / var(--n) - .1px);position:relative;flex:0 0 var(--w);height:0;padding-bottom:var(--w);border-radius:12px;overflow:hidden;background:#eee}
+@media(min-width:560px){.cell{--n:4}}
+@media(min-width:800px){.cell{--n:6}}
+.cell button{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;padding:0;background:none;cursor:pointer}
+.cell img,.cell video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cell i{position:absolute;right:6px;bottom:6px;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;font-style:normal;font-size:10px}
+.empty{flex:0 0 100%;text-align:center;color:var(--sub);padding:36px 0}
+
+#lb{position:fixed;inset:0;z-index:20;display:none;background:#1b1a1f;flex-direction:column}
+#lb.on{display:flex}
+.top{display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;color:#fff;font-size:14px}
+.top .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
+.stage{flex:1;min-height:0;position:relative}
+#media{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:0 12px}
+#media img,#media video{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px}
+.nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+#prev{left:8px}#next{right:8px}
+.bot{padding:12px 14px calc(16px + env(safe-area-inset-bottom));text-align:center}
+.bot a{display:inline-block;color:#fff;text-decoration:none;background:var(--pink);border-radius:999px;padding:8px 22px;font-size:15px}
+
+#letter{position:fixed;inset:0;z-index:15;display:none;background:rgba(40,32,40,.45);padding:18px;align-items:center;justify-content:center}
+#letter.on{display:flex}
+.paperbox{position:relative;width:100%;max-width:520px;animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.94) translateY(16px);opacity:0}}
+.paperbox .close{position:absolute;right:-6px;top:-14px;z-index:2}
+#paper{max-height:80vh;overflow:auto;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;background-color:#fffdf8;background-image:repeating-linear-gradient(transparent 0 33px,#f1e6da 33px 34px);background-attachment:local;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(80,60,60,.2);padding:34px 26px;font:400 22px/34px "Gaegu","Gowun Dodum",sans-serif}
+
+.music{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;width:42px;height:42px;padding:0;border-radius:50%;border:1px solid var(--line);background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);font-size:18px;line-height:1;cursor:pointer}
+.music[hidden]{display:none}
+.music.on{background:var(--pink);border-color:var(--pink)}
+</style>
+</head>
+<body>
+<header><h1 id="title"></h1><p id="sub"></p></header>
+<div class="map"><img src="map.jpg" alt="식장 전경 일러스트"><div id="pins"></div></div>
+<div id="chips"></div>
+<div class="mail" id="mail" hidden><button class="env" id="openLetter">💌 편지 열어보기</button></div>
+
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sname">
+ <div class="panel">
+  <div class="ph"><h2 id="sname"></h2><button class="btn" id="zip">전체 다운로드</button><button class="btn ghost" id="sclose" aria-label="닫기">✕</button></div>
+  <div class="grid" id="grid"></div>
+ </div>
+</div>
+
+<div id="lb" role="dialog" aria-modal="true">
+ <div class="top"><span id="cnt"></span><button class="btn ghost" id="lclose" aria-label="닫기">✕</button></div>
+ <div class="stage"><button class="nav" id="prev" aria-label="이전">‹</button><div id="media"></div><button class="nav" id="next" aria-label="다음">›</button></div>
+ <div class="bot"><a id="dl" download>저장하기</a></div>
+</div>
+
+<div id="letter" role="dialog" aria-modal="true" aria-label="편지">
+ <div class="paperbox"><button class="btn ghost close" id="letterClose" aria-label="닫기">✕</button><div id="paper"></div></div>
+</div>
+
+<button class="music" id="music" aria-label="배경음악 켜기" hidden>🔇</button>
+
+<script>
+/* ============ ✏️ 여기만 고치면 돼요 ============ */
+const CFG = {
+  title: '결혼식 사진첩',
+  subtitle: '핀을 눌러서 그 자리에서 찍은 사진을 확인해요',
+  music: 'videoplayback.mp3',   // 비워두면('') 음악 버튼이 안 보여요
+
+  // 편지: 아래 백틱(`) 사이에 그냥 쓰면 줄바꿈 그대로 나와요. 비워두면 편지 버튼이 사라져요.
+  letter: `To. 사랑하는 예지언니
+
+안녕 언니! 결혼식 이후로 바쁘다는 핑계로 연락이 뜸했네. 신혼여행 잘 다녀온 거 인스타로 봤는데, 역시 언니는 뭘 해도 너무 예쁘더라!
+
+결혼식 사진을 그냥 건네기보다, 가장 아름다웠던 그날의 추억을 돌아보는 이 공간도 예쁘면 좋겠다는 마음에 뚝딱뚝딱 만들어 봤어. 사진을 다시 올리면서 보니 둘이 정말 선남선녀가 따로 없네.
+
+언니는 내가 성인이 된 뒤 만난 사람 중 가장 고맙고 의미가 큰 사람이야. 내가 많이 흔들리고 힘들었던 시기에, 무른 나를 단단하게 잡아주고 곁에서 응원해 줬던 마음 평생 잊지 못할 거야. 똑 부러지고 단단한 언니의 모습을 닮고 싶어서 나도 늘 노력 중이야. 아직 갈 길이 멀지만, 언니처럼 멋진 사람이 되려고 나도 열심히 살아볼게!
+
+형부랑 항상 알콩달콩하고 행복한 일만 가득하길 진심으로 바랄게. 언제나 사랑하고 축복해 언니 ❤️
+
+From. 현지`,
+
+  // 스팟: x, y 는 지도 이미지 기준 % 좌표. 사진은 media/<id>/ 폴더에 넣어요.
+  // files 에 파일명을 적으면 그 순서대로, 비워두면 `java Build.java` 가 만든 items.json 을 써요.
+  spots: [
+    { id: 'spot1', name: '왼쪽 건물 발코니', x: 23.05, y: 39.66, files: [] },
+    { id: 'spot2', name: '본관',     x: 51.42, y: 45.72, files: [] },
+    { id: 'spot3', name: '웨딩 아일(Wedding Aisle)',       x: 74.55, y: 94.33, files: [] }
+    // 예) { id:'spot4', name:'분수', x:60, y:75, files:['a.jpg','b.jpg','c.mp4'] },
+    // 미리 만든 zip 이 있으면: zip:'media/spot1.zip' 을 추가
+  ]
+};
+/* =============================================== */
+
+const $=s=>document.querySelector(s), url=p=>encodeURI(p);
+const IMGX=/\.(jpe?g|png|webp)$/i;
+const mk=(id,f)=>IMGX.test(f)
+  ?{type:'image',src:`media/${id}/${f}`,thumb:`thumbs/${id}/${f.replace(/\.[^.]+$/,'')}.jpg`}
+  :{type:'video',src:`media/${id}/${f}`};
+let cur,idx,stopMusic=()=>{};
+
+document.title=CFG.title;$('#title').textContent=CFG.title;$('#sub').textContent=CFG.subtitle;
+if(CFG.letter.trim()){$('#paper').textContent=CFG.letter.trim();$('#mail').hidden=false}
+
+fetch('items.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(auto=>{
+  CFG.spots.forEach((s,i)=>{
+    s.items=s.files&&s.files.length?s.files.map(f=>mk(s.id,f)):(auto[s.id]||[]);
+    const b=document.createElement('button');b.className='pin';b.textContent=i+1;b.setAttribute('aria-label',s.name);
+    b.style.left=s.x+'%';b.style.top=s.y+'%';b.onclick=()=>openSpot(s);$('#pins').append(b);
+    const c=document.createElement('button');c.className='chip';c.innerHTML='<b>'+(i+1)+'</b>';c.append(s.name);c.onclick=()=>openSpot(s);$('#chips').append(c);
+  });
+});
+
+function openSpot(s){
+  cur=s;$('#sname').textContent=s.name;const g=$('#grid');g.innerHTML='';
+  $('#zip').style.display=s.items.length?'':'none';
+  if(!s.items.length)g.innerHTML='<p class="empty">아직 사진이 없어요 🥲</p>';
+  s.items.forEach((it,i)=>{
+    const d=document.createElement('div');d.className='cell';
+    const b=document.createElement('button');b.setAttribute('aria-label',(i+1)+'번째 '+(it.type==='video'?'영상':'사진')+' 보기');
+    b.innerHTML=it.type==='video'
+      ?'<video src="'+url(it.src)+'#t=0.1" preload="metadata" muted playsinline></video><i>▶</i>'
+      :'<img loading="lazy" decoding="async" alt="" src="'+url(it.thumb)+'" data-full="'+url(it.src)+'" onerror="this.onerror=null;this.src=this.dataset.full">';
+    b.onclick=()=>show(i);d.append(b);g.append(d);
+  });
+  g.scrollTop=0;
+  $('#sheet').classList.add('on');document.body.style.overflow='hidden';
+}
+function closeSpot(){$('#sheet').classList.remove('on');document.body.style.overflow=''}
+function show(i){
+  const n=cur.items.length;idx=(i+n)%n;const it=cur.items[idx];
+  if(it.type==='video')stopMusic();
+  $('#media').innerHTML=it.type==='video'
+    ?'<video src="'+url(it.src)+'" controls autoplay playsinline></video>'
+    :'<img src="'+url(it.src)+'" alt="">';
+  $('#cnt').textContent=(idx+1)+' / '+n;const a=$('#dl');a.href=url(it.src);a.download=it.src.split('/').pop();
+  $('#lb').classList.add('on');
+}
+function closeLb(){$('#lb').classList.remove('on');$('#media').innerHTML=''}
+function closeLetter(){$('#letter').classList.remove('on');document.body.style.overflow=''}
+
+$('#sclose').onclick=closeSpot;$('#lclose').onclick=closeLb;
+$('#sheet').onclick=e=>{if(e.target.id==='sheet')closeSpot()};
+$('#prev').onclick=()=>show(idx-1);$('#next').onclick=()=>show(idx+1);
+$('#openLetter').onclick=()=>{$('#letter').classList.add('on');document.body.style.overflow='hidden'};
+$('#letterClose').onclick=closeLetter;
+$('#letter').onclick=e=>{if(e.target.id==='letter')closeLetter()};
+addEventListener('keydown',e=>{
+  if($('#letter').classList.contains('on')){if(e.key==='Escape')closeLetter();return}
+  if($('#lb').classList.contains('on')){if(e.key==='Escape')closeLb();if(e.key==='ArrowLeft')show(idx-1);if(e.key==='ArrowRight')show(idx+1)}
+  else if(e.key==='Escape')closeSpot();
+});
+let x0=null;
+$('.stage').addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
+$('.stage').addEventListener('touchend',e=>{if(x0===null)return;const d=e.changedTouches[0].clientX-x0;if(Math.abs(d)>50)show(idx+(d<0?1:-1));x0=null});
+
+$('#zip').onclick=async e=>{
+  const btn=e.target,s=cur;if(s.zip){location.href=url(s.zip);return}
+  btn.disabled=true;const z=new JSZip();let n=0;
+  try{
+    for(const it of s.items){const r=await fetch(url(it.src));z.file(it.src.split('/').pop(),await r.blob());btn.textContent='담는 중 '+(++n)+'/'+s.items.length}
+    btn.textContent='압축하는 중…';
+    const blob=await z.generateAsync({type:'blob',compression:'STORE'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=s.name+'.zip';a.click();
+  }catch(err){alert('다운로드에 실패했어요. 사진을 하나씩 받아주세요.')}
+  btn.disabled=false;btn.textContent='전체 다운로드';
+};
+
+if(CFG.music){
+  const au=new Audio(encodeURI(CFG.music));au.loop=true;au.volume=.35;au.preload='none';
+  const mb=$('#music');mb.hidden=false;
+  const set=on=>{mb.classList.toggle('on',on);mb.textContent=on?'🎵':'🔇';mb.setAttribute('aria-label',on?'배경음악 끄기':'배경음악 켜기')};
+  stopMusic=()=>{if(!au.paused){au.pause();set(false)}};
+  mb.onclick=()=>{
+  if(au.paused){au.play().then(()=>set(true)).catch(e=>alert('음악 재생 실패: '+e.name+'\nmusic.mp3 이름·위치를 확인해주세요'))}
+  else{au.pause();set(false)}
+};
+}
+</script>
+</body>
+</html>
